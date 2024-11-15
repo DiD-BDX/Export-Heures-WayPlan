@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - Modifications-colonnes-et-suppresion-guide
   pull_request:
     branches:
       - main
+      - Modifications-colonnes-et-suppresion-guide
 
 jobs:
   build:
