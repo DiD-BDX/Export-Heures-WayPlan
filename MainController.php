@@ -146,7 +146,6 @@ class MainController {
                     'ticket_restaurant' => $ticket_restaurant
                 ];
                 $where = ['id' => intval($id)];
-                error_log("Mise à jour des données pour l'ID $id : " . print_r($data, true));
                 $this->databaseManager->update_donnees($data, $where);
             }
         }
