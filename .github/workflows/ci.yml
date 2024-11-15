@@ -29,7 +29,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           sonar-scanner \
-            -Dsonar.projectKey=DiD-BDX_Export-Heures-WayPlan \
-            -Dsonar.organization=DidierBD \
+            -Dsonar.projectKey=did-bdx_Export-Heures-WayPlan \
+            -Dsonar.organization=did-bdx \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=$SONAR_TOKEN
