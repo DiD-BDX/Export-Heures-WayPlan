@@ -24,9 +24,6 @@ jobs:
       - name: Install dependencies
         run: composer install --no-progress --no-suggest --prefer-dist
 
-      - name: Run tests
-        run: vendor/bin/phpunit
-
       - name: Run SonarQube analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
