@@ -28,7 +28,7 @@ jobs:
         uses: sonarsource/sonarcloud-github-action@master
         with:
           args: >
-            -Dsonar.projectKey=did-bdx_Export-Heures-WayPlan
+            -Dsonar.projectKey=DiD-BDX_Export-Heures-WayPlan
             -Dsonar.organization=did-bdx
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
