@@ -1,0 +1,36 @@
+.wrap {
+    margin: 20px;
+}
+
+#chauffeur_selectionne {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+#chauffeur_max {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+#filtrage_chauffeur button {
+    margin-bottom: 5px;
+}
+
+.bold-red {
+    font-weight: bold;
+    color: red;
+}
+
+.btn-supprimer {
+    background-color: red;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+.btn-supprimer:hover {
+    background-color: darkred;
+}

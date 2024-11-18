@@ -189,9 +189,48 @@ class DatabaseManager implements IDatabaseManager {
     }
 
     public function supprimer_donnees_par_chauffeur($nom_chauffeur) {
-        $this->wpdb->delete($this->table_name, ['nom_chauffeur' => $nom_chauffeur], ['%s']);
-        if ($this->wpdb->last_error) {
-            wp_die('Erreur lors de la suppression des données : ' . $this->wpdb->last_error);
+        // Normaliser l'encodage du nom du chauffeur
+        $nom_chauffeur = mb_convert_encoding($nom_chauffeur, 'UTF-8', mb_detect_encoding($nom_chauffeur));
+    
+        // Normaliser les caractères du nom du chauffeur
+        if (class_exists('Normalizer')) {
+            $nom_chauffeur = Normalizer::normalize($nom_chauffeur, Normalizer::FORM_C);
         }
+    
+        // Vérifier si le chauffeur existe dans la base de données
+        $chauffeur_existe = $this->wpdb->get_var($this->wpdb->prepare("SELECT COUNT(*) FROM $this->table_name WHERE nom_chauffeur = %s", $nom_chauffeur));
+        if ($chauffeur_existe == 0) {
+            return false;
+        }
+    
+        // Obtenir tous les IDs du chauffeur par son nom
+        $chauffeur_ids = $this->wpdb->get_col($this->wpdb->prepare("SELECT id FROM $this->table_name WHERE nom_chauffeur = %s", $nom_chauffeur));
+        if (empty($chauffeur_ids)) {
+            return false;
+        }
+    
+        // Tenter de supprimer toutes les données du chauffeur par ID
+        foreach ($chauffeur_ids as $chauffeur_id) {
+            $result = $this->wpdb->delete($this->table_name, ['id' => $chauffeur_id], ['%d']);
+            
+            if ($this->wpdb->last_error) {
+                wp_die('Erreur lors de la suppression des données : ' . $this->wpdb->last_error);
+            }
+    
+            if ($result === false) {
+                return false;
+            }
+        }
+    
+        return true;
+    }
+
+    public function obtenir_id_par_nom($nom_chauffeur) {
+        $nom_chauffeur = trim($nom_chauffeur);
+        $nom_chauffeur = mb_convert_encoding($nom_chauffeur, 'UTF-8', mb_detect_encoding($nom_chauffeur));
+        if (class_exists('Normalizer')) {
+            $nom_chauffeur = Normalizer::normalize($nom_chauffeur, Normalizer::FORM_C);
+        }
+        return $this->wpdb->get_var($this->wpdb->prepare("SELECT id FROM $this->table_name WHERE nom_chauffeur = %s", $nom_chauffeur));
     }
 }
