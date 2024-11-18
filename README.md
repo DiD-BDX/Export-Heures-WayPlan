@@ -11,6 +11,7 @@ Importer un fichier CSV généré par WayPlan, le modifier avec le plugin et exp
   - [Utilisation](#utilisation)
     - [Shortcodes](#shortcodes)
     - [Fonctionnalités](#fonctionnalités)
+  - [Format du fichier CSV](#format-du-fichier-csv)
   - [Développement](#développement)
   - [Crédits](#crédits)
 
@@ -58,6 +59,26 @@ Le plugin fournit plusieurs shortcodes pour afficher différentes fonctionnalit�
    - Utilisez le bouton "Générer le fichier Excel" pour créer un fichier Excel contenant les données modifiées.
    - Téléchargez le fichier Excel généré en utilisant le bouton "Télécharger le fichier Excel".
 
+## Format du fichier CSV
+
+Pour que le plugin fonctionne correctement, le fichier CSV doit être formaté comme suit :
+
+- Le fichier doit être encodé en UTF-8.
+- Les colonnes doivent être séparées par des points-virgules (`;`).
+- La première ligne du fichier CSV doit contenir les en-têtes des colonnes.
+- Les colonnes doivent être dans l'ordre suivant :
+  1. `nom_chauffeur` : Le nom du chauffeur (ex. : "John Doe").
+  2. `date_mission` : La date de la mission (ex. : "2023-10-01").
+  3. `heure_debut` : L'heure de début de la mission (ex. : "08:00").
+  4. `heure_fin` : L'heure de fin de la mission (ex. : "17:00").
+
+Exemple de fichier CSV :
+
+```csv
+nom_chauffeur;date_mission;heure_debut;heure_fin
+John Doe;2023-10-01;08:00;17:00
+Jane Smith;2023-10-01;09:00;18:00
+```
 ## Développement
 
 Pour contribuer au développement de ce plugin, suivez les étapes ci-dessous :
