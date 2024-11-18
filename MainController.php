@@ -203,10 +203,19 @@ class MainController {
      * Traite la suppression d'un guide.
      */
     public function gerer_suppression_chauffeur() {
+        $debugManager = DebugManager::getInstance();
+        
         if (isset($_POST['supprimer_chauffeur']) && isset($_POST['chauffeur_a_supprimer'])) {
             $chauffeur_a_supprimer = sanitize_text_field($_POST['chauffeur_a_supprimer']);
-            $this->databaseManager->supprimer_donnees_par_chauffeur($chauffeur_a_supprimer);
-            $this->recalculer_totaux(); // Recalculer les totaux après la suppression
+            
+            // Supprimer les données du chauffeur
+            $result = $this->databaseManager->supprimer_donnees_par_chauffeur($chauffeur_a_supprimer);
+            
+            // Recalculer les totaux après la suppression
+            $this->recalculer_totaux();
+        } else {
+            // Ajouter un message de débogage si les paramètres POST ne sont pas définis
+            $debugManager->addMessage("maincontroller : Paramètres POST manquants pour la suppression du chauffeur.");
         }
     }
 }

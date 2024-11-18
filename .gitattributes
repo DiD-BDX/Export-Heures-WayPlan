@@ -1,0 +1,7 @@
+# Exclure le dossier .github lors de l'exportation
+.github export-ignore
+
+# Vous pouvez également exclure d'autres fichiers ou dossiers si nécessaire
+/tests export-ignore
+/.gitignore export-ignore
+/.gitattributes export-ignore

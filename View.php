@@ -96,14 +96,14 @@ class View {
         ?>
         <div class="wrap">
             <h2>Informations du guide Sélectionné</h2>
-            <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 20px;" id="chauffeur_selectionne">
+            <div id="chauffeur_selectionne">
                 <p><strong>Nom du guide :</strong> <?php echo esc_html($selected_chauffeur ? $selected_chauffeur : 'Tous'); ?></p>
                 <p><strong>Total des Heures Travaillées :</strong> <?php echo esc_html($total_heures_travaillees_filtre); ?></p>
                 <p><strong>Total des Tickets Restaurant :</strong> <?php echo esc_html($selected_chauffeur ? $total_tickets_restaurant_par_chauffeur[$selected_chauffeur] : $total_tickets_restaurant_par_chauffeur['tous']); ?></p>
                 <?php if ($selected_chauffeur): ?>
                     <form method="post">
                         <input type="hidden" name="chauffeur_a_supprimer" value="<?php echo esc_attr($selected_chauffeur); ?>">
-                        <button type="submit" name="supprimer_chauffeur" style="background-color: red; color: white;">Supprimer le guide sélectionné</button>
+                        <button type="submit" name="supprimer_chauffeur" class="btn-supprimer">Supprimer le guide sélectionné</button>
                     </form>
                 <?php endif; ?>
             </div>
@@ -129,7 +129,7 @@ class View {
         ?>
         <div class="wrap">
             <h2>Informations Globales sur les guides</h2>
-            <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 20px;" id="chauffeur_max">
+            <div id="chauffeur_max">
                 <p><strong>Guide avec le plus d'heures :</strong> <?php echo esc_html($chauffeur_max_heures); ?></p>
                 <p><strong>Avec :</strong> <?php echo esc_html($total_heures_chauffeur_max_formatted); ?> heures</p>
                 <p><strong>Moyenne des Heures Travaillées par tous les guides :</strong> <?php echo esc_html($moyenne_heures_travaillees_formatted); ?> heures</p>
@@ -174,7 +174,7 @@ class View {
                                     <td><input type="text" name="heure_debut[<?php echo $row->id; ?>]" value="<?php echo esc_html(date('H:i', strtotime($row->heure_debut))); ?>"></td>
                                     <td><input type="text" name="coupure[<?php echo $row->id; ?>]" value="<?php echo esc_html(date('H:i', strtotime($row->coupure))); ?>"></td>
                                     <td><input type="text" name="heure_fin[<?php echo $row->id; ?>]" value="<?php echo esc_html(date('H:i', strtotime($row->heure_fin))); ?>"></td>
-                                    <td style="<?php echo ($row->est_superieur_a_12_heures) ? 'font-weight: bold; color: red;' : ''; ?>">
+                                    <td class="<?php echo ($row->est_superieur_a_12_heures) ? 'bold-red' : ''; ?>">
                                         <?php echo esc_html(date('H:i', strtotime($row->heures_travaillees))); ?>
                                     </td>
                                     <td><input type="checkbox" name="ticket_restaurant[<?php echo $row->id; ?>]" value="1" <?php checked($row->ticket_restaurant, 1); ?>></td>
@@ -218,6 +218,8 @@ class View {
      */
     private function format_heures($time) {
         list($hours, $minutes, $seconds) = explode(':', $time);
+        $hours = (int) $hours;
+        $minutes = (int) $minutes;
         $total_minutes = $hours * 60 + $minutes;
         $formatted_hours = intdiv($total_minutes, 60);
         $formatted_minutes = $total_minutes % 60;
