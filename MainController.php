@@ -42,7 +42,7 @@ class MainController {
     public function afficher_page() {
         $debugManager = DebugManager::getInstance();
 
-        $this->gerer_import_csv();
+        $this->traiter_formulaire_import();
         $this->gerer_generation_excel();
         $this->gerer_telechargement_excel();
         $this->gerer_validation_modifications();
@@ -61,10 +61,6 @@ class MainController {
         $results_chauffeur_max = $this->databaseManager->obtenir_donnees($totaux['chauffeur_max_heures']);
         $total_heures_chauffeur_max = $this->calculations->calculer_total_heures_travaillees($results_chauffeur_max);
 
-        // Debug message
-        //$debugManager->addMessage('nom du Chauffeur Max dans afficher_page de MainController.php: ' . $totaux['chauffeur_max_heures']);
-        //$debugManager->addMessage('Total Heures Chauffeur Max dans afficher_page de MainController.php: ' . $total_heures_chauffeur_max);
-
         $this->view->afficher_page_principale(
             $chauffeurs,
             $selected_chauffeur,
@@ -74,20 +70,6 @@ class MainController {
             $total_tickets_restaurant_par_chauffeur,
             $totaux
         );
-    }
-
-    /**
-     * Gère l'importation du fichier CSV.
-     */
-    private function gerer_import_csv() {
-        if (isset($_POST['submit'])) {
-            if (isset($_FILES['csv_file']) && $_FILES['csv_file']['error'] == UPLOAD_ERR_OK) {
-                $csv_file = $_FILES['csv_file']['tmp_name'];
-                $totaux = $this->calculations->recalculer_totaux($this->databaseManager);
-            } else {
-                $this->debug_messages[] = "Veuillez sélectionner un fichier CSV à importer.";
-            }
-        }
     }
 
     /**
@@ -152,17 +134,6 @@ class MainController {
     }
 
     /**
-     * Recalcule les totaux et met à jour les propriétés de la classe.
-     */
-    private function recalculer_totaux() {
-        $totaux = $this->calculations->recalculer_totaux($this->databaseManager);
-        $this->chauffeur_max_heures = $totaux['chauffeur_max_heures'];
-        $this->total_heures_travaillees = $totaux['total_heures_travaillees'];
-        $this->moyenne_heures_travaillees = $totaux['moyenne_heures_travaillees'];
-        $this->total_tickets_restaurant_par_chauffeur = $totaux['total_tickets_restaurant_par_chauffeur'];
-    }
-
-    /**
      * Traite le formulaire de validation des modifications.
      */
     public function traiter_formulaire_modifications() {
@@ -192,11 +163,26 @@ class MainController {
             if (isset($_FILES['csv_file']) && $_FILES['csv_file']['error'] == UPLOAD_ERR_OK) {
                 $csv_file = $_FILES['csv_file']['tmp_name'];
                 $this->debug_messages = $this->importCsv->importer_csv($csv_file);
-                $this->recalculer_totaux();
             } else {
                 $this->debug_messages[] = "Veuillez sélectionner un fichier CSV à importer.";
             }
         }
+    }
+
+    /**
+     * Recalcule les totaux et met à jour les propriétés de la classe.
+     */
+    private function recalculer_totaux() {
+        $debugManager = DebugManager::getInstance();
+        $totaux = $this->calculations->recalculer_totaux($this->databaseManager);
+        
+        // Ajouter des messages de débogage pour vérifier les valeurs après le recalcul des totaux
+        $debugManager->addMessage("******* 1 ******* MainController recalculer_totaux : Totaux recalculés : " . json_encode($totaux, JSON_UNESCAPED_UNICODE));
+        
+        $this->chauffeur_max_heures = $totaux['chauffeur_max_heures'];
+        $this->total_heures_travaillees = $totaux['total_heures_travaillees'];
+        $this->moyenne_heures_travaillees = $totaux['moyenne_heures_travaillees'];
+        $this->total_tickets_restaurant_par_chauffeur = $totaux['total_tickets_restaurant_par_chauffeur'];
     }
 
     /**
@@ -211,11 +197,22 @@ class MainController {
             // Supprimer les données du chauffeur
             $result = $this->databaseManager->supprimer_donnees_par_chauffeur($chauffeur_a_supprimer);
             
-            // Recalculer les totaux après la suppression
-            $this->recalculer_totaux();
+            if ($result) {
+                $debugManager->addMessage("**** 2 ***MainController gerer_suppression_chauffeur : Données du chauffeur supprimées avec succès.");
+                // Recalculer les totaux après la suppression
+                $this->recalculer_totaux();
+                $debugManager->addMessage("****** 3 ******** MainController recalculer_totaux : Totaux recalculés : " . json_encode([
+                    'total_heures_travaillees' => $this->total_heures_travaillees,
+                    'chauffeur_max_heures' => $this->chauffeur_max_heures,
+                    'moyenne_heures_travaillees' => $this->moyenne_heures_travaillees,
+                    'total_tickets_restaurant_par_chauffeur' => $this->total_tickets_restaurant_par_chauffeur
+                ], JSON_UNESCAPED_UNICODE));
+            } else {
+                $debugManager->addMessage("gerer_suppression_chauffeur : Échec de la suppression des données du chauffeur.");
+            }
         } else {
             // Ajouter un message de débogage si les paramètres POST ne sont pas définis
-            $debugManager->addMessage("maincontroller : Paramètres POST manquants pour la suppression du chauffeur.");
+            $debugManager->addMessage("gerer_suppression_chauffeur : Paramètres POST manquants pour la suppression du chauffeur.");
         }
     }
 }

@@ -12,59 +12,45 @@ class Calculations {
      */
     public function recalculer_totaux(IDatabaseManager $databaseManager) {
         $debugManager = DebugManager::getInstance();
+            // Récupérer toutes les données
+            $results = $databaseManager->obtenir_donnees();
+
+            // Calculer le total des heures travaillées
+            $total_heures_travaillees = $this->calculer_total_heures_travaillees($results);
+            $debugManager->addMessage("------- 1 ------Calculations recalculer totaux : Total des heures travaillées : $total_heures_travaillees");
     
-        // Récupérer toutes les données
-        $all_results = $databaseManager->obtenir_donnees();
+            // Obtenir le chauffeur ayant travaillé le plus d'heures
+            $chauffeur_max_heures = $this->obtenir_chauffeur_max_heures($results);
+            $results_chauffeur_max = $databaseManager->obtenir_donnees($chauffeur_max_heures['nom_chauffeur']);
+            $total_heures_chauffeur_max = $this->calculer_total_heures_travaillees($results_chauffeur_max);
     
-        // Recalculer les heures travaillées pour chaque entrée
-        foreach ($all_results as $row) {
-            $heures_travaillees = $this->calculer_heures_travaillees($row->heure_debut, $row->heure_fin, $row->coupure);
-            $databaseManager->update_donnees(['heures_travaillees' => $heures_travaillees], ['id' => $row->id]);
-        }
+            // Calculer la moyenne des heures travaillées par chauffeur
+            $nombre_chauffeurs = $this->calculer_nombre_chauffeurs($databaseManager);
+            $moyenne_heures_travaillees = $this->calculer_moyenne_heures_travaillees($total_heures_travaillees, $nombre_chauffeurs);
+
+            // Calculer les totaux des tickets restaurant
+            $totaux_tickets_restaurant = $this->calculer_totaux_tickets_restaurant($results);
+            $total_tickets_restaurant = $totaux_tickets_restaurant['tous'];
+            $total_tickets_restaurant_par_chauffeur = $totaux_tickets_restaurant;
+            unset($total_tickets_restaurant_par_chauffeur['tous']);
+            $total_tickets_restaurant_chauffeur_max = $total_tickets_restaurant_par_chauffeur[$chauffeur_max_heures['nom_chauffeur']];
     
-        // Obtenir les résultats mis à jour
-        $all_results = $databaseManager->obtenir_donnees();
-    
-        // Calculer les totaux
-        $chauffeur_max_heures = $this->obtenir_chauffeur_max_heures($all_results);
-        $total_heures_travaillees = $this->calculer_total_heures_travaillees($all_results);
-        $noms_chauffeurs = $databaseManager->obtenir_noms_chauffeurs();
-        $nombre_chauffeurs = count($noms_chauffeurs);
-    
-        // Vérifier que le nombre de chauffeurs n'est pas zéro
-        if ($nombre_chauffeurs == 0) {
-            $debugManager->addMessage("Erreur: Le nombre de chauffeurs est zéro.");
-            return [
-                'debug_messages' => $this->debug_messages,
+            // Mettre à jour les totaux dans la base de données
+            $totaux = [
+                'total_heures_travaillees' => $total_heures_travaillees,
+                'chauffeur_max_heures' => $chauffeur_max_heures['nom_chauffeur'],
+                'total_heures_chauffeur_max' => $total_heures_chauffeur_max,
+                'moyenne_heures_travaillees' => $moyenne_heures_travaillees,
+                'total_tickets_restaurant' => $total_tickets_restaurant,
+                'total_tickets_restaurant_par_chauffeur' => $total_tickets_restaurant_par_chauffeur,
+                'total_tickets_restaurant_chauffeur_max' => $total_tickets_restaurant_chauffeur_max
             ];
-        }
-    
-        $moyenne_heures_travaillees = $this->calculer_moyenne_heures_travaillees($total_heures_travaillees, $nombre_chauffeurs);
-        $total_tickets_restaurant_par_chauffeur = $this->calculer_totaux_tickets_restaurant($all_results);
-        $total_tickets_restaurant = $total_tickets_restaurant_par_chauffeur['tous'];
-    
-        // Mettre à jour les totaux calculés dans la base de données
-        $databaseManager->update_totaux([
-            'total_heures_travaillees' => $total_heures_travaillees,
-            'chauffeur_max_heures' => $chauffeur_max_heures['nom_chauffeur'],
-            'moyenne_heures_travaillees' => $moyenne_heures_travaillees,
-            'total_tickets_restaurant' => $total_tickets_restaurant,
-        ]);
-    
-        // Mettre à jour les totaux des tickets restaurant par chauffeur
-        foreach ($total_tickets_restaurant_par_chauffeur as $nom_chauffeur => $total_tickets) {
-            $databaseManager->update_totaux_chauffeur($nom_chauffeur, $total_tickets);
-        }
-    
-        // Retourner les totaux recalculés
-        return [
-            'chauffeur_max_heures' => $chauffeur_max_heures,
-            'total_heures_travaillees' => $total_heures_travaillees,
-            'moyenne_heures_travaillees' => $moyenne_heures_travaillees,
-            'total_tickets_restaurant' => $total_tickets_restaurant,
-            'total_tickets_restaurant_par_chauffeur' => $total_tickets_restaurant_par_chauffeur,
-            'debug_messages' => $this->debug_messages,
-        ];
+            
+            $debugManager->addMessage("---- 2 ------Calculations recalculer totaux : total_heure_travaillees : {$totaux['total_heures_travaillees']}");
+            $databaseManager->update_totaux($totaux);
+            $newObtenirTotaux = $databaseManager->obtenir_totaux();
+
+            return $totaux;
     }
 
     /**
@@ -74,6 +60,8 @@ class Calculations {
      * @return string Total des heures travaillées au format HH:MM.
      */
     public function calculer_total_heures_travaillees($results) {
+        $debugManager = DebugManager::getInstance();
+
         $total_minutes = 0;
         foreach ($results as $row) {
             list($heures, $minutes) = explode(':', $row->heures_travaillees);
@@ -81,6 +69,7 @@ class Calculations {
         }
         $total_heures = intdiv($total_minutes, 60);
         $total_minutes = $total_minutes % 60;
+
         return sprintf('%02d:%02d', $total_heures, $total_minutes);
     }
 
@@ -123,6 +112,8 @@ class Calculations {
      * @return string Moyenne des heures travaillées au format HH:MM.
      */
     public function calculer_moyenne_heures_travaillees($total_heures_travaillees, $nombre_chauffeurs) {
+        $debugManager = DebugManager::getInstance();
+
         if ($nombre_chauffeurs == 0) {
             throw new InvalidArgumentException("Le nombre de chauffeurs ne peut pas être zéro.");
         }
@@ -132,6 +123,7 @@ class Calculations {
         $moyenne_minutes = $total_minutes / $nombre_chauffeurs;
         $heures = intdiv((int) round($moyenne_minutes), 60);
         $minutes = (int) round($moyenne_minutes) % 60;
+
         return sprintf('%02d:%02d', $heures, $minutes);
     }
 
@@ -192,5 +184,19 @@ class Calculations {
         }
         $totaux_par_chauffeur['tous'] = $total_global;
         return $totaux_par_chauffeur;
+    }
+
+    /**
+     * Calcule le nombre de chauffeurs uniques.
+     *
+     * @param IDatabaseManager $databaseManager Instance de l'interface IDatabaseManager.
+     * @return int Nombre de chauffeurs uniques.
+     */
+    public function calculer_nombre_chauffeurs(IDatabaseManager $databaseManager) {
+        $noms_chauffeurs = $databaseManager->obtenir_noms_chauffeurs();
+        $noms_chauffeurs_uniques = array_unique(array_map(function($chauffeur) {
+            return $chauffeur->nom_chauffeur;
+        }, $noms_chauffeurs));
+        return count($noms_chauffeurs_uniques);
     }
 }

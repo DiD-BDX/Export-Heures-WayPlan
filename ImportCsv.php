@@ -92,7 +92,7 @@ class ImportCsv {
                             'heure_debut' => $heure_debut,
                             'coupure' => $coupure,
                             'heure_fin' => $heure_fin,
-                            'heures_travaillees' => $heures_travaillees
+                            'heures_travaillees' => $heures_travaillees,
                         ]);
                     } catch (Exception $e) {
                         $debugManager->addMessage("Erreur lors de l'insertion des données pour la ligne $row: " . $e->getMessage());
@@ -102,7 +102,9 @@ class ImportCsv {
             }
             fclose($handle);
         }
-    
+        // Recalculer les totaux après l'importation
+        $this->calculations->recalculer_totaux($this->databaseManager);
+        
         return $debugManager->getMessages();
     }
 }

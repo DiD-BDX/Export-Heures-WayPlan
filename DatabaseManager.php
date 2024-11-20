@@ -61,13 +61,16 @@ class DatabaseManager implements IDatabaseManager {
      */
     public function obtenir_totaux() {
         $debugManager = DebugManager::getInstance();
-        $result = $this->wpdb->get_row("SELECT total_heures_travaillees, chauffeur_max_heures, moyenne_heures_travaillees, total_tickets_restaurant FROM $this->table_name LIMIT 1", ARRAY_A);
+        $result = $this->wpdb->get_row("SELECT total_heures_travaillees, chauffeur_max_heures, total_heures_chauffeur_max, moyenne_heures_travaillees, total_tickets_restaurant FROM $this->table_name LIMIT 1", ARRAY_A);
         
         if ($this->wpdb->last_error) {
             wp_die('Erreur lors de la récupération des totaux : ' . $this->wpdb->last_error);
         }
+        
+        // Ajouter des messages de débogage pour vérifier les valeurs brutes récupérées
+        $debugManager->addMessage("--------- 6 -----DatabaseManager obtenir_totaux, Valeurs brutes récupérées depuis la base de données : " . json_encode($result, JSON_UNESCAPED_UNICODE));
+        
         return $result;
-        return $debugManager->getMessages();
     }
 
     /**
@@ -78,22 +81,45 @@ class DatabaseManager implements IDatabaseManager {
     public function update_totaux($totaux) {
         $debugManager = DebugManager::getInstance();
 
+        // Ajouter des messages de débogage pour vérifier les valeurs avant la mise à jour
+        $debugManager->addMessage("----- 3 et 4 -----DatabaseManager update_totaux , Valeurs avant mise à jour : " . json_encode($totaux, JSON_UNESCAPED_UNICODE));
+    
+        $data = [
+            'total_heures_travaillees' => $totaux['total_heures_travaillees'],
+            'chauffeur_max_heures' => $totaux['chauffeur_max_heures'],
+            'total_heures_chauffeur_max' => $totaux['total_heures_chauffeur_max'],
+            'moyenne_heures_travaillees' => $totaux['moyenne_heures_travaillees'],
+            'total_tickets_restaurant' => $totaux['total_tickets_restaurant'],
+            'total_tickets_restaurant_par_chauffeur' => json_encode($totaux['total_tickets_restaurant_par_chauffeur'], JSON_UNESCAPED_UNICODE),
+            'total_tickets_restaurant_chauffeur_max' => $totaux['total_tickets_restaurant_chauffeur_max']
+        ];
+    
+        $formats = [
+            '%s', // total_heures_travaillees
+            '%s', // chauffeur_max_heures
+            '%s', // total_heures_chauffeur_max
+            '%s', // moyenne_heures_travaillees
+            '%d', // total_tickets_restaurant
+            '%s', // total_tickets_restaurant_par_chauffeur
+            '%d'  // total_tickets_restaurant_chauffeur_max
+        ];
+    
+        $where = ['id' => 1];
+        $where_format = ['%d'];
+    
         $this->wpdb->update(
             $this->table_name,
-            $totaux,
-            array('id' => 1), // Mettre à jour la première ligne, vous pouvez ajuster selon vos besoins
-            array(
-                '%s', // total_heures_travaillees
-                '%s', // chauffeur_max_heures
-                '%s', // moyenne_heures_travaillees
-                '%d' // total_tickets_restaurant
-            ),
-            array('%d')
+            $data,
+            $where,
+            $formats,
+            $where_format
         );
-
+    
         if ($this->wpdb->last_error) {
             wp_die('Erreur lors de la mise à jour des totaux : ' . $this->wpdb->last_error);
         }
+    
+        $debugManager->addMessage("------ 5 --------DatabaseManager update_totaux mis à jour dans la base de données : " . json_encode($data, JSON_UNESCAPED_UNICODE));
     }
 
     /**
@@ -106,13 +132,13 @@ class DatabaseManager implements IDatabaseManager {
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             nom_chauffeur varchar(255) NOT NULL,
             date_mission varchar(10) NOT NULL,
-            heure_debut time NOT NULL,
-            coupure time NOT NULL,
-            heure_fin time NOT NULL,
-            heures_travaillees time NOT NULL,
-            total_heures_travaillees time NOT NULL,
+            heure_debut varchar(10) NOT NULL,
+            coupure varchar(10) NOT NULL,
+            heure_fin varchar(10) NOT NULL,
+            heures_travaillees varchar(10) NOT NULL,
+            total_heures_travaillees varchar(10) NOT NULL,
             chauffeur_max_heures varchar(255) NOT NULL,
-            moyenne_heures_travaillees time NOT NULL,
+            moyenne_heures_travaillees varchar(10) NOT NULL,
             ticket_restaurant boolean NOT NULL DEFAULT 1,
             total_tickets_restaurant int NOT NULL DEFAULT 0,
             total_tickets_restaurant_par_chauffeur int NOT NULL DEFAULT 0,
