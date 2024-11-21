@@ -187,8 +187,6 @@ class MainController {
 
         // Mettre à jour les totaux dans la base de données
         $this->databaseManager->update_totaux($totaux);
-
-        $debugManager->addMessage("****** 3 ******** MainController recalculer_totaux : Totaux recalculés et mis à jour : " . json_encode($totaux, JSON_UNESCAPED_UNICODE));
     }
 
     /**
