@@ -204,9 +204,6 @@ class MainController {
             if ($result) {
                 // Recalculer les totaux après la suppression
                 $this->recalculer_totaux();
-
-                $debugManager->addMessage("****** 3 ******** MainController gerer_suppression_chauffeur : Totaux recalculés : " . json_encode($this->recalculer_totaux(), JSON_UNESCAPED_UNICODE));
-                
             } else {
                 $debugManager->addMessage("gerer_suppression_chauffeur : Échec de la suppression des données du chauffeur.");
             }
