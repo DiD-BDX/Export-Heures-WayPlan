@@ -25,7 +25,7 @@ class MainController {
      * @param ImportCsv $importCsv Instance de la classe ImportCsv.
      * @param ExportExcel $exportExcel Instance de la classe ExportExcel.
      * @param Calculations $calculations Instance de la classe Calculations.
-      * @param FileHandler $fileHandler Instance de la classe FileHandler.
+     * @param FileHandler $fileHandler Instance de la classe FileHandler.
      */
     public function __construct(IDatabaseManager $databaseManager, $view, $importCsv, $exportExcel, $calculations, $fileHandler) {
         $this->databaseManager = $databaseManager;
@@ -42,7 +42,7 @@ class MainController {
     public function afficher_page() {
         $debugManager = DebugManager::getInstance();
 
-        $this->gerer_import_csv();
+        $this->traiter_formulaire_import();
         $this->gerer_generation_excel();
         $this->gerer_telechargement_excel();
         $this->gerer_validation_modifications();
@@ -61,10 +61,6 @@ class MainController {
         $results_chauffeur_max = $this->databaseManager->obtenir_donnees($totaux['chauffeur_max_heures']);
         $total_heures_chauffeur_max = $this->calculations->calculer_total_heures_travaillees($results_chauffeur_max);
 
-        // Debug message
-        //$debugManager->addMessage('nom du Chauffeur Max dans afficher_page de MainController.php: ' . $totaux['chauffeur_max_heures']);
-        //$debugManager->addMessage('Total Heures Chauffeur Max dans afficher_page de MainController.php: ' . $total_heures_chauffeur_max);
-
         $this->view->afficher_page_principale(
             $chauffeurs,
             $selected_chauffeur,
@@ -74,20 +70,6 @@ class MainController {
             $total_tickets_restaurant_par_chauffeur,
             $totaux
         );
-    }
-
-    /**
-     * Gère l'importation du fichier CSV.
-     */
-    private function gerer_import_csv() {
-        if (isset($_POST['submit'])) {
-            if (isset($_FILES['csv_file']) && $_FILES['csv_file']['error'] == UPLOAD_ERR_OK) {
-                $csv_file = $_FILES['csv_file']['tmp_name'];
-                $totaux = $this->calculations->recalculer_totaux($this->databaseManager);
-            } else {
-                $this->debug_messages[] = "Veuillez sélectionner un fichier CSV à importer.";
-            }
-        }
     }
 
     /**
@@ -138,11 +120,29 @@ class MainController {
                 $heure_debut = sanitize_text_field($heure_debut);
                 $coupure = sanitize_text_field($_POST['coupure'][$id]);
                 $heure_fin = sanitize_text_field($_POST['heure_fin'][$id]);
+    
+                // Transformer les valeurs en format HH:MM
+                $heure_debut = $this->transformer_en_format_hhmm($heure_debut);
+                $coupure = $this->transformer_en_format_hhmm($coupure);
+                $heure_fin = $this->transformer_en_format_hhmm($heure_fin);
+    
+                // Vérifier si les valeurs sont au format HH:MM
+                if (!$this->est_format_heure_valide($heure_debut) || !$this->est_format_heure_valide($coupure) || !$this->est_format_heure_valide($heure_fin)) {
+                    // Ajouter un message de débogage ou gérer l'erreur
+                    $debugManager = DebugManager::getInstance();
+                    $debugManager->addMessage("Format d'heure invalide pour l'ID $id");
+                    continue; // Passer à l'itération suivante
+                }
+    
+                // Recalculer les heures travaillées
+                $heures_travaillees = $this->calculations->calculer_heures_travaillees($heure_debut, $heure_fin, $coupure);
+    
                 $ticket_restaurant = isset($_POST['ticket_restaurant'][$id]) ? 1 : 0;
                 $data = [
                     'heure_debut' => $heure_debut,
                     'coupure' => $coupure,
                     'heure_fin' => $heure_fin,
+                    'heures_travaillees' => $heures_travaillees,
                     'ticket_restaurant' => $ticket_restaurant
                 ];
                 $where = ['id' => intval($id)];
@@ -150,16 +150,31 @@ class MainController {
             }
         }
     }
-
+    
     /**
-     * Recalcule les totaux et met à jour les propriétés de la classe.
+     * Vérifie si une chaîne est au format HH:MM.
+     *
+     * @param string $heure La chaîne à vérifier.
+     * @return bool True si la chaîne est au format HH:MM, False sinon.
      */
-    private function recalculer_totaux() {
-        $totaux = $this->calculations->recalculer_totaux($this->databaseManager);
-        $this->chauffeur_max_heures = $totaux['chauffeur_max_heures'];
-        $this->total_heures_travaillees = $totaux['total_heures_travaillees'];
-        $this->moyenne_heures_travaillees = $totaux['moyenne_heures_travaillees'];
-        $this->total_tickets_restaurant_par_chauffeur = $totaux['total_tickets_restaurant_par_chauffeur'];
+    private function est_format_heure_valide($heure) {
+        return preg_match('/^\d{2}:\d{2}$/', $heure) === 1;
+    }
+    
+    /**
+     * Transforme une chaîne de temps en format HH:MM.
+     *
+     * @param string $time La chaîne de temps à transformer.
+     * @return string La chaîne de temps transformée.
+     */
+    private function transformer_en_format_hhmm($time) {
+        if (empty($time)) {
+            return '00:00';
+        }
+        if (is_numeric($time)) {
+            return sprintf('%02d:00', intval($time));
+        }
+        return $time;
     }
 
     /**
@@ -192,7 +207,6 @@ class MainController {
             if (isset($_FILES['csv_file']) && $_FILES['csv_file']['error'] == UPLOAD_ERR_OK) {
                 $csv_file = $_FILES['csv_file']['tmp_name'];
                 $this->debug_messages = $this->importCsv->importer_csv($csv_file);
-                $this->recalculer_totaux();
             } else {
                 $this->debug_messages[] = "Veuillez sélectionner un fichier CSV à importer.";
             }
@@ -200,7 +214,27 @@ class MainController {
     }
 
     /**
-     * Traite la suppression d'un guide.
+     * Recalcule les totaux et met à jour les propriétés de la classe.
+     */
+    private function recalculer_totaux() {
+        $debugManager = DebugManager::getInstance();
+
+        // Supprimer les lignes vides
+        //$this->databaseManager->supprimer_lignes_vides();
+
+        $totaux = $this->calculations->recalculer_totaux($this->databaseManager);
+
+        $this->chauffeur_max_heures = $totaux['chauffeur_max_heures'];
+        $this->total_heures_travaillees = $totaux['total_heures_travaillees'];
+        $this->moyenne_heures_travaillees = $totaux['moyenne_heures_travaillees'];
+        $this->total_tickets_restaurant_par_chauffeur = $totaux['total_tickets_restaurant_par_chauffeur'];
+
+        // Mettre à jour les totaux dans la base de données
+        $this->databaseManager->update_totaux($totaux);
+    }
+
+    /**
+     * Traite la suppression d'un chauffeur.
      */
     public function gerer_suppression_chauffeur() {
         $debugManager = DebugManager::getInstance();
@@ -211,11 +245,15 @@ class MainController {
             // Supprimer les données du chauffeur
             $result = $this->databaseManager->supprimer_donnees_par_chauffeur($chauffeur_a_supprimer);
             
-            // Recalculer les totaux après la suppression
-            $this->recalculer_totaux();
+            if ($result) {
+                // Recalculer les totaux après la suppression
+                $this->recalculer_totaux();
+            } else {
+                $debugManager->addMessage("gerer_suppression_chauffeur : Échec de la suppression des données du chauffeur.");
+            }
         } else {
             // Ajouter un message de débogage si les paramètres POST ne sont pas définis
-            $debugManager->addMessage("maincontroller : Paramètres POST manquants pour la suppression du chauffeur.");
+            $debugManager->addMessage("gerer_suppression_chauffeur : Paramètres POST manquants pour la suppression du chauffeur.");
         }
     }
 }

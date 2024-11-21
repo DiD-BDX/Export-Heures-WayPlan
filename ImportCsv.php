@@ -56,8 +56,14 @@ class ImportCsv {
             while (($data = fgetcsv($handle, 1000, ";")) !== FALSE) {
                 // Ignorer la première ligne (en-têtes)
                 if ($row > 1) {
-                    // Supprimer les espaces avant, après et les espaces supplémentaires dans le nom du chauffeur
                     $nom_chauffeur = preg_replace('/\s+/', ' ', trim($data[0]));
+                    
+                    // Vérifier si la ligne doit être ignorée
+                    if (empty($nom_chauffeur) || $nom_chauffeur === "Nom chauffeur" || $nom_chauffeur === "_______________") {
+                        $row++;
+                        continue;
+                    }
+    
                     $date_mission = $data[1];
                     $heure_debut = $data[2];
                     $coupure = '00:30'; // Coupure fixe de 30 minutes
@@ -65,7 +71,6 @@ class ImportCsv {
     
                     // Vérifier la validité des heures de début et de fin
                     if (empty($heure_debut) || empty($heure_fin) || strtotime($heure_debut) === false || strtotime($heure_fin) === false) {
-                        //$debugManager->addMessage("Heure invalide pour la ligne $row: heure_debut = $heure_debut, heure_fin = $heure_fin");
                         $row++;
                         continue;
                     }
@@ -75,7 +80,6 @@ class ImportCsv {
     
                     // Vérifier l'encodage du nom du chauffeur
                     if (!mb_check_encoding($nom_chauffeur, 'UTF-8')) {
-                        //$debugManager->addMessage("Nom du chauffeur invalide pour la ligne $row: $nom_chauffeur");
                         $row++;
                         continue;
                     }
@@ -88,7 +92,7 @@ class ImportCsv {
                             'heure_debut' => $heure_debut,
                             'coupure' => $coupure,
                             'heure_fin' => $heure_fin,
-                            'heures_travaillees' => $heures_travaillees
+                            'heures_travaillees' => $heures_travaillees,
                         ]);
                     } catch (Exception $e) {
                         $debugManager->addMessage("Erreur lors de l'insertion des données pour la ligne $row: " . $e->getMessage());
@@ -98,7 +102,9 @@ class ImportCsv {
             }
             fclose($handle);
         }
-    
+        // Recalculer les totaux après l'importation
+        $this->calculations->recalculer_totaux($this->databaseManager);
+        
         return $debugManager->getMessages();
     }
 }

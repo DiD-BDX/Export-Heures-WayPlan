@@ -11,7 +11,12 @@ class View {
         $this->afficher_bouton_telecharger_excel();
         $this->afficher_boutons_filtrage($chauffeurs);
         $this->afficher_informations_chauffeur_selectionne($selected_chauffeur, $total_heures_travaillees_filtre, $total_tickets_restaurant_par_chauffeur);
-        $this->afficher_informations_chauffeur_max($totaux['chauffeur_max_heures'], $total_heures_chauffeur_max, $totaux['moyenne_heures_travaillees'], $totaux['total_tickets_restaurant']);
+        $this->afficher_informations_chauffeur_max(
+            $totaux['chauffeur_max_heures'],
+            $total_heures_chauffeur_max,
+            $totaux['moyenne_heures_travaillees'],
+            $totaux['total_tickets_restaurant'],
+        );
         $this->afficher_messages_debug();
         $this->afficher_tableau_donnees($results, $selected_chauffeur);
 
@@ -122,8 +127,6 @@ class View {
     public function afficher_informations_chauffeur_max($chauffeur_max_heures, $total_heures_chauffeur_max, $moyenne_heures_travaillees, $total_tickets_restaurant) {
         $debugManager = DebugManager::getInstance();
 
-        // Formater les valeurs pour afficher uniquement heures:minutes
-        $total_heures_chauffeur_max_formatted = $this->format_heures($total_heures_chauffeur_max);
         $moyenne_heures_travaillees_formatted = $this->format_heures($moyenne_heures_travaillees);
 
         ?>
@@ -131,7 +134,7 @@ class View {
             <h2>Informations Globales sur les guides</h2>
             <div id="chauffeur_max">
                 <p><strong>Guide avec le plus d'heures :</strong> <?php echo esc_html($chauffeur_max_heures); ?></p>
-                <p><strong>Avec :</strong> <?php echo esc_html($total_heures_chauffeur_max_formatted); ?> heures</p>
+                <p><strong>Avec :</strong> <?php echo esc_html($total_heures_chauffeur_max); ?> heures</p>
                 <p><strong>Moyenne des Heures Travaillées par tous les guides :</strong> <?php echo esc_html($moyenne_heures_travaillees_formatted); ?> heures</p>
                 <p><strong>Total global des Tickets Restaurant :</strong> <?php echo esc_html($total_tickets_restaurant); ?></p>
             </div>

@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - Modifications-colonnes-et-suppresion-guide
+      - Corrections-SonarCloud
   pull_request:
     branches:
       - main
-      - Modifications-colonnes-et-suppresion-guide
+      - Corrections-SonarCloud
 
 jobs:
   build:
