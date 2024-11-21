@@ -25,7 +25,7 @@ class MainController {
      * @param ImportCsv $importCsv Instance de la classe ImportCsv.
      * @param ExportExcel $exportExcel Instance de la classe ExportExcel.
      * @param Calculations $calculations Instance de la classe Calculations.
-      * @param FileHandler $fileHandler Instance de la classe FileHandler.
+     * @param FileHandler $fileHandler Instance de la classe FileHandler.
      */
     public function __construct(IDatabaseManager $databaseManager, $view, $importCsv, $exportExcel, $calculations, $fileHandler) {
         $this->databaseManager = $databaseManager;
@@ -174,19 +174,25 @@ class MainController {
      */
     private function recalculer_totaux() {
         $debugManager = DebugManager::getInstance();
+
+        // Supprimer les lignes vides
+        $this->databaseManager->supprimer_lignes_vides();
+
         $totaux = $this->calculations->recalculer_totaux($this->databaseManager);
-        
-        // Ajouter des messages de débogage pour vérifier les valeurs après le recalcul des totaux
-        $debugManager->addMessage("******* 1 ******* MainController recalculer_totaux : Totaux recalculés : " . json_encode($totaux, JSON_UNESCAPED_UNICODE));
-        
+
         $this->chauffeur_max_heures = $totaux['chauffeur_max_heures'];
         $this->total_heures_travaillees = $totaux['total_heures_travaillees'];
         $this->moyenne_heures_travaillees = $totaux['moyenne_heures_travaillees'];
         $this->total_tickets_restaurant_par_chauffeur = $totaux['total_tickets_restaurant_par_chauffeur'];
+
+        // Mettre à jour les totaux dans la base de données
+        $this->databaseManager->update_totaux($totaux);
+
+        $debugManager->addMessage("****** 3 ******** MainController recalculer_totaux : Totaux recalculés et mis à jour : " . json_encode($totaux, JSON_UNESCAPED_UNICODE));
     }
 
     /**
-     * Traite la suppression d'un guide.
+     * Traite la suppression d'un chauffeur.
      */
     public function gerer_suppression_chauffeur() {
         $debugManager = DebugManager::getInstance();
@@ -198,15 +204,11 @@ class MainController {
             $result = $this->databaseManager->supprimer_donnees_par_chauffeur($chauffeur_a_supprimer);
             
             if ($result) {
-                $debugManager->addMessage("**** 2 ***MainController gerer_suppression_chauffeur : Données du chauffeur supprimées avec succès.");
                 // Recalculer les totaux après la suppression
                 $this->recalculer_totaux();
-                $debugManager->addMessage("****** 3 ******** MainController recalculer_totaux : Totaux recalculés : " . json_encode([
-                    'total_heures_travaillees' => $this->total_heures_travaillees,
-                    'chauffeur_max_heures' => $this->chauffeur_max_heures,
-                    'moyenne_heures_travaillees' => $this->moyenne_heures_travaillees,
-                    'total_tickets_restaurant_par_chauffeur' => $this->total_tickets_restaurant_par_chauffeur
-                ], JSON_UNESCAPED_UNICODE));
+
+                $debugManager->addMessage("****** 3 ******** MainController gerer_suppression_chauffeur : Totaux recalculés : " . json_encode($this->recalculer_totaux(), JSON_UNESCAPED_UNICODE));
+                
             } else {
                 $debugManager->addMessage("gerer_suppression_chauffeur : Échec de la suppression des données du chauffeur.");
             }

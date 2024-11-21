@@ -12,12 +12,12 @@ class Calculations {
      */
     public function recalculer_totaux(IDatabaseManager $databaseManager) {
         $debugManager = DebugManager::getInstance();
+
             // Récupérer toutes les données
             $results = $databaseManager->obtenir_donnees();
 
             // Calculer le total des heures travaillées
             $total_heures_travaillees = $this->calculer_total_heures_travaillees($results);
-            $debugManager->addMessage("------- 1 ------Calculations recalculer totaux : Total des heures travaillées : $total_heures_travaillees");
     
             // Obtenir le chauffeur ayant travaillé le plus d'heures
             $chauffeur_max_heures = $this->obtenir_chauffeur_max_heures($results);
@@ -46,9 +46,7 @@ class Calculations {
                 'total_tickets_restaurant_chauffeur_max' => $total_tickets_restaurant_chauffeur_max
             ];
             
-            $debugManager->addMessage("---- 2 ------Calculations recalculer totaux : total_heure_travaillees : {$totaux['total_heures_travaillees']}");
             $databaseManager->update_totaux($totaux);
-            $newObtenirTotaux = $databaseManager->obtenir_totaux();
 
             return $totaux;
     }
@@ -61,15 +59,17 @@ class Calculations {
      */
     public function calculer_total_heures_travaillees($results) {
         $debugManager = DebugManager::getInstance();
-
+    
         $total_minutes = 0;
         foreach ($results as $row) {
             list($heures, $minutes) = explode(':', $row->heures_travaillees);
+            $heures = (int) $heures; // Convertir en entier
+            $minutes = (int) $minutes; // Convertir en entier
             $total_minutes += $heures * 60 + $minutes;
         }
         $total_heures = intdiv($total_minutes, 60);
         $total_minutes = $total_minutes % 60;
-
+    
         return sprintf('%02d:%02d', $total_heures, $total_minutes);
     }
 
@@ -88,6 +88,8 @@ class Calculations {
                 $chauffeurs_heures[$row->nom_chauffeur] = 0;
             }
             list($heures, $minutes) = explode(':', $row->heures_travaillees);
+            $heures = (int) $heures; // Convertir en entier
+            $minutes = (int) $minutes; // Convertir en entier
             $chauffeurs_heures[$row->nom_chauffeur] += $heures * 60 + $minutes;
         }
 
@@ -119,6 +121,8 @@ class Calculations {
         }
     
         list($total_heures, $total_minutes) = explode(':', $total_heures_travaillees);
+        $total_heures = (int) $total_heures; // Convertir en entier
+        $total_minutes = (int) $total_minutes; // Convertir en entier
         $total_minutes += $total_heures * 60;
         $moyenne_minutes = $total_minutes / $nombre_chauffeurs;
         $heures = intdiv((int) round($moyenne_minutes), 60);
@@ -162,6 +166,8 @@ class Calculations {
      */
     public function est_superieur_a_12_heures($heures_travaillees) {
         list($heures, $minutes) = explode(':', $heures_travaillees);
+        $heures = (int) $heures; // Convertir en entier
+        $minutes = (int) $minutes; // Convertir en entier
         $total_minutes = $heures * 60 + $minutes;
         return $total_minutes > 720; // 12 heures * 60 minutes
     }
