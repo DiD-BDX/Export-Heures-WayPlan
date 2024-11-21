@@ -127,12 +127,7 @@ class View {
     public function afficher_informations_chauffeur_max($chauffeur_max_heures, $total_heures_chauffeur_max, $moyenne_heures_travaillees, $total_tickets_restaurant) {
         $debugManager = DebugManager::getInstance();
 
-        // Formater les valeurs pour afficher uniquement heures:minutes
-        $debugManager->addMessage('Moyenne Heures Travaillees dans afficher_informations_chauffeur_max de View.php: ' . $moyenne_heures_travaillees);
-
         $moyenne_heures_travaillees_formatted = $this->format_heures($moyenne_heures_travaillees);
-
-        $debugManager->addMessage('Moyenne Heures Travaillees formatted dans afficher_informations_chauffeur_max de View.php: ' . $moyenne_heures_travaillees_formatted);
 
         ?>
         <div class="wrap">
