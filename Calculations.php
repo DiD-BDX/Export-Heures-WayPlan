@@ -69,7 +69,7 @@ class Calculations {
         }
         $total_heures = intdiv($total_minutes, 60);
         $total_minutes = $total_minutes % 60;
-    
+
         return sprintf('%02d:%02d', $total_heures, $total_minutes);
     }
 
@@ -140,21 +140,37 @@ class Calculations {
      * @return string Heures travaillées au format HH:MM.
      */
     public function calculer_heures_travaillees($heure_debut, $heure_fin, $coupure) {
-        $heure_debut_dt = new DateTime($heure_debut);
-        $heure_fin_dt = new DateTime($heure_fin);
-        $coupure_dt = new DateTime($coupure);
+        $debugManager = DebugManager::getInstance();
 
+        // Convertir les heures et minutes en entiers
+        list($debut_heures, $debut_minutes) = explode(':', $heure_debut);
+        list($fin_heures, $fin_minutes) = explode(':', $heure_fin);
+        list($coupure_heures, $coupure_minutes) = explode(':', $coupure);
+    
+        $debut_heures = (int) $debut_heures;
+        $debut_minutes = (int) $debut_minutes;
+        $fin_heures = (int) $fin_heures;
+        $fin_minutes = (int) $fin_minutes;
+        $coupure_heures = (int) $coupure_heures;
+        $coupure_minutes = (int) $coupure_minutes;
+    
+        // Calculer les minutes totales de début, fin et coupure
+        $debut_total_minutes = $debut_heures * 60 + $debut_minutes;
+        $fin_total_minutes = $fin_heures * 60 + $fin_minutes;
+        $coupure_total_minutes = $coupure_heures * 60 + $coupure_minutes;
+    
         // Vérifier si l'heure de fin est le jour suivant
-        if ($heure_fin_dt < $heure_debut_dt) {
-            $heure_fin_dt->modify('+1 day');
+        if ($fin_total_minutes < $debut_total_minutes) {
+            $fin_total_minutes += 24 * 60; // Ajouter 24 heures en minutes
         }
-
-        $interval = $heure_fin_dt->diff($heure_debut_dt);
-        $coupure_minutes = ($coupure_dt->format('H') * 60) + $coupure_dt->format('i');
-        $minutes_travaillees = ($interval->h * 60 + $interval->i) - $coupure_minutes;
-
+    
+        // Calculer les minutes travaillées en soustrayant les minutes de coupure
+        $minutes_travaillees = $fin_total_minutes - $debut_total_minutes - $coupure_total_minutes;
+    
+        // Convertir les minutes travaillées en heures et minutes
         $heures = intdiv($minutes_travaillees, 60);
         $minutes = $minutes_travaillees % 60;
+
         return sprintf('%02d:%02d', $heures, $minutes);
     }
 

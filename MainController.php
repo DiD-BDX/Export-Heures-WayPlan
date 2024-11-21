@@ -120,17 +120,61 @@ class MainController {
                 $heure_debut = sanitize_text_field($heure_debut);
                 $coupure = sanitize_text_field($_POST['coupure'][$id]);
                 $heure_fin = sanitize_text_field($_POST['heure_fin'][$id]);
+    
+                // Transformer les valeurs en format HH:MM
+                $heure_debut = $this->transformer_en_format_hhmm($heure_debut);
+                $coupure = $this->transformer_en_format_hhmm($coupure);
+                $heure_fin = $this->transformer_en_format_hhmm($heure_fin);
+    
+                // Vérifier si les valeurs sont au format HH:MM
+                if (!$this->est_format_heure_valide($heure_debut) || !$this->est_format_heure_valide($coupure) || !$this->est_format_heure_valide($heure_fin)) {
+                    // Ajouter un message de débogage ou gérer l'erreur
+                    $debugManager = DebugManager::getInstance();
+                    $debugManager->addMessage("Format d'heure invalide pour l'ID $id");
+                    continue; // Passer à l'itération suivante
+                }
+    
+                // Recalculer les heures travaillées
+                $heures_travaillees = $this->calculations->calculer_heures_travaillees($heure_debut, $heure_fin, $coupure);
+    
                 $ticket_restaurant = isset($_POST['ticket_restaurant'][$id]) ? 1 : 0;
                 $data = [
                     'heure_debut' => $heure_debut,
                     'coupure' => $coupure,
                     'heure_fin' => $heure_fin,
+                    'heures_travaillees' => $heures_travaillees,
                     'ticket_restaurant' => $ticket_restaurant
                 ];
                 $where = ['id' => intval($id)];
                 $this->databaseManager->update_donnees($data, $where);
             }
         }
+    }
+    
+    /**
+     * Vérifie si une chaîne est au format HH:MM.
+     *
+     * @param string $heure La chaîne à vérifier.
+     * @return bool True si la chaîne est au format HH:MM, False sinon.
+     */
+    private function est_format_heure_valide($heure) {
+        return preg_match('/^\d{2}:\d{2}$/', $heure) === 1;
+    }
+    
+    /**
+     * Transforme une chaîne de temps en format HH:MM.
+     *
+     * @param string $time La chaîne de temps à transformer.
+     * @return string La chaîne de temps transformée.
+     */
+    private function transformer_en_format_hhmm($time) {
+        if (empty($time)) {
+            return '00:00';
+        }
+        if (is_numeric($time)) {
+            return sprintf('%02d:00', intval($time));
+        }
+        return $time;
     }
 
     /**
@@ -176,7 +220,7 @@ class MainController {
         $debugManager = DebugManager::getInstance();
 
         // Supprimer les lignes vides
-        $this->databaseManager->supprimer_lignes_vides();
+        //$this->databaseManager->supprimer_lignes_vides();
 
         $totaux = $this->calculations->recalculer_totaux($this->databaseManager);
 
