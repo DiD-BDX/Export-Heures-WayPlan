@@ -4,11 +4,9 @@ on:
   push:
     branches:
       - main
-      - Corrections-SonarCloud
   pull_request:
     branches:
       - main
-      - Corrections-SonarCloud
 
 jobs:
   build:
