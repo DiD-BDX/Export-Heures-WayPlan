@@ -33,6 +33,15 @@ class DatabaseManager implements IDatabaseManager {
      * @param array $data Tableau associatif contenant les données à insérer.
      */
     public function inserer_donnees($data) {
+        // Vérifier si un ticket restaurant existe déjà pour la date de mission et le nom du chauffeur
+        $date_mission = $data['date_mission'];
+        $nom_chauffeur = $data['nom_chauffeur'];
+        if (!$this->ticket_restaurant_existe($date_mission, $nom_chauffeur)) {
+            $data['ticket_restaurant'] = 1;
+        } else {
+            $data['ticket_restaurant'] = 0;
+        }
+
         $this->wpdb->insert(
             $this->table_name,
             $data,
@@ -46,6 +55,7 @@ class DatabaseManager implements IDatabaseManager {
                 '%s', // total_heures_travaillees
                 '%s', // chauffeur_max_heures
                 '%s', // moyenne_heures_travaillees
+                '%s', // commentaire
                 '%d'  // ticket_restaurant
             )
         );
@@ -61,13 +71,14 @@ class DatabaseManager implements IDatabaseManager {
      */
     public function obtenir_totaux() {
         $debugManager = DebugManager::getInstance();
-        $result = $this->wpdb->get_row("SELECT total_heures_travaillees, chauffeur_max_heures, moyenne_heures_travaillees, total_tickets_restaurant FROM $this->table_name LIMIT 1", ARRAY_A);
+
+        $result = $this->wpdb->get_row("SELECT total_heures_travaillees, chauffeur_max_heures, total_heures_chauffeur_max, moyenne_heures_travaillees, total_tickets_restaurant FROM $this->table_name LIMIT 1", ARRAY_A);
         
         if ($this->wpdb->last_error) {
             wp_die('Erreur lors de la récupération des totaux : ' . $this->wpdb->last_error);
         }
+
         return $result;
-        return $debugManager->getMessages();
     }
 
     /**
@@ -77,20 +88,20 @@ class DatabaseManager implements IDatabaseManager {
      */
     public function update_totaux($totaux) {
         $debugManager = DebugManager::getInstance();
+   
+        $data = [
+            'total_heures_travaillees' => $totaux['total_heures_travaillees'],
+            'chauffeur_max_heures' => $totaux['chauffeur_max_heures'],
+            'total_heures_chauffeur_max' => $totaux['total_heures_chauffeur_max'],
+            'moyenne_heures_travaillees' => $totaux['moyenne_heures_travaillees'],
+            'total_tickets_restaurant' => $totaux['total_tickets_restaurant'],
+            'total_tickets_restaurant_par_chauffeur' => json_encode($totaux['total_tickets_restaurant_par_chauffeur'], JSON_UNESCAPED_UNICODE),
+            'total_tickets_restaurant_chauffeur_max' => $totaux['total_tickets_restaurant_chauffeur_max']
+        ];
 
-        $this->wpdb->update(
-            $this->table_name,
-            $totaux,
-            array('id' => 1), // Mettre à jour la première ligne, vous pouvez ajuster selon vos besoins
-            array(
-                '%s', // total_heures_travaillees
-                '%s', // chauffeur_max_heures
-                '%s', // moyenne_heures_travaillees
-                '%d' // total_tickets_restaurant
-            ),
-            array('%d')
-        );
-
+        // Utiliser la fonction update_donnees pour mettre à jour les totaux dans toutes les lignes
+        $this->update_donnees($data, []);
+    
         if ($this->wpdb->last_error) {
             wp_die('Erreur lors de la mise à jour des totaux : ' . $this->wpdb->last_error);
         }
@@ -106,20 +117,21 @@ class DatabaseManager implements IDatabaseManager {
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             nom_chauffeur varchar(255) NOT NULL,
             date_mission varchar(10) NOT NULL,
-            heure_debut time NOT NULL,
-            coupure time NOT NULL,
-            heure_fin time NOT NULL,
-            heures_travaillees time NOT NULL,
-            total_heures_travaillees time NOT NULL,
+            heure_debut varchar(10) NOT NULL,
+            coupure varchar(10) NOT NULL,
+            heure_fin varchar(10) NOT NULL,
+            heures_travaillees varchar(10) NOT NULL,
+            total_heures_travaillees varchar(10) NOT NULL,
             chauffeur_max_heures varchar(255) NOT NULL,
-            moyenne_heures_travaillees time NOT NULL,
+            moyenne_heures_travaillees varchar(10) NOT NULL,
+            commentaire text NOT NULL,
             ticket_restaurant boolean NOT NULL DEFAULT 1,
             total_tickets_restaurant int NOT NULL DEFAULT 0,
             total_tickets_restaurant_par_chauffeur int NOT NULL DEFAULT 0,
             PRIMARY KEY (id)
         ) $charset_collate;";
 
-        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta($sql);
     }
 
@@ -153,22 +165,35 @@ class DatabaseManager implements IDatabaseManager {
      * @param array $where Tableau associatif contenant les conditions de mise à jour.
      * @throws Exception Si une erreur survient lors de la mise à jour.
      */
-    public function update_donnees($data, $where) {
+    public function update_donnees($data, $where = []) {
         $data_formats = array_map(function($value) {
             return is_int($value) ? '%d' : '%s';
         }, array_values($data));
     
-        $where_formats = array_map(function($value) {
-            return is_int($value) ? '%d' : '%s';
-        }, array_values($where));
+        if (!empty($where)) {
+            $where_formats = array_map(function($value) {
+                return is_int($value) ? '%d' : '%s';
+            }, array_values($where));
     
-        $this->wpdb->update(
-            $this->table_name,
-            $data,
-            $where,
-            $data_formats,
-            $where_formats
-        );
+            $this->wpdb->update(
+                $this->table_name,
+                $data,
+                $where,
+                $data_formats,
+                $where_formats
+            );
+        } else {
+            // Construire la clause SET pour la requête SQL
+            $set_clause = [];
+            foreach ($data as $column => $value) {
+                $set_clause[] = "$column = " . $this->wpdb->prepare('%s', $value);
+            }
+            $set_clause = implode(', ', $set_clause);
+    
+            // Construire et exécuter la requête SQL pour mettre à jour toutes les lignes
+            $sql = "UPDATE $this->table_name SET $set_clause";
+            $this->wpdb->query($sql);
+        }
     
         if ($this->wpdb->last_error) {
             throw new Exception('Erreur lors de la mise à jour des données : ' . $this->wpdb->last_error);
@@ -188,7 +213,14 @@ class DatabaseManager implements IDatabaseManager {
         );
     }
 
+    /**
+     * Supprime les données d'un chauffeur par son nom.
+     *
+     * @param string $nom_chauffeur Nom du chauffeur.
+     * @return bool True si la suppression a réussi, False sinon.
+     */
     public function supprimer_donnees_par_chauffeur($nom_chauffeur) {
+        $debugManager = DebugManager::getInstance();
         // Normaliser l'encodage du nom du chauffeur
         $nom_chauffeur = mb_convert_encoding($nom_chauffeur, 'UTF-8', mb_detect_encoding($nom_chauffeur));
     
@@ -209,6 +241,22 @@ class DatabaseManager implements IDatabaseManager {
             return false;
         }
     
+        // Vérifier si la ligne avec id = 1 doit être supprimée
+        if (in_array(1, $chauffeur_ids)) {
+            // Trouver la prochaine ligne disponible qui ne sera pas supprimée
+            $next_id = $this->wpdb->get_var("SELECT id FROM $this->table_name WHERE id NOT IN (" . implode(',', $chauffeur_ids) . ") ORDER BY id ASC LIMIT 1");
+            if ($next_id) {
+                // Copier les totaux de la ligne 1 vers la prochaine ligne disponible
+                $totaux_ligne_1 = $this->wpdb->get_row("SELECT total_heures_travaillees, chauffeur_max_heures, total_heures_chauffeur_max, moyenne_heures_travaillees, total_tickets_restaurant, total_tickets_restaurant_par_chauffeur, total_tickets_restaurant_chauffeur_max FROM $this->table_name WHERE id = 1", ARRAY_A);
+                $this->wpdb->update($this->table_name, $totaux_ligne_1, ['id' => $next_id], ['%s', '%s', '%s', '%s', '%d', '%s', '%d'], ['%d']);
+                if ($this->wpdb->last_error) {
+                    wp_die('Erreur lors de la copie des totaux de la ligne 1 vers la ligne ' . $next_id . ' : ' . $this->wpdb->last_error);
+                }
+            } else {
+                wp_die('Aucune ligne disponible pour copier les totaux.');
+            }
+        }
+    
         // Tenter de supprimer toutes les données du chauffeur par ID
         foreach ($chauffeur_ids as $chauffeur_id) {
             $result = $this->wpdb->delete($this->table_name, ['id' => $chauffeur_id], ['%d']);
@@ -221,10 +269,16 @@ class DatabaseManager implements IDatabaseManager {
                 return false;
             }
         }
-    
+        
         return true;
     }
 
+    /**
+     * Récupère l'ID d'un chauffeur par son nom.
+     *
+     * @param string $nom_chauffeur Nom du chauffeur.
+     * @return int ID du chauffeur.
+     */
     public function obtenir_id_par_nom($nom_chauffeur) {
         $nom_chauffeur = trim($nom_chauffeur);
         $nom_chauffeur = mb_convert_encoding($nom_chauffeur, 'UTF-8', mb_detect_encoding($nom_chauffeur));
@@ -232,5 +286,27 @@ class DatabaseManager implements IDatabaseManager {
             $nom_chauffeur = Normalizer::normalize($nom_chauffeur, Normalizer::FORM_C);
         }
         return $this->wpdb->get_var($this->wpdb->prepare("SELECT id FROM $this->table_name WHERE nom_chauffeur = %s", $nom_chauffeur));
+    }
+
+    /**
+     * Supprime les lignes dont le champ "nom_chauffeur" est vide.
+     */
+    public function supprimer_lignes_vides() {
+        $this->wpdb->query("DELETE FROM $this->table_name WHERE nom_chauffeur = ''");
+        if ($this->wpdb->last_error) {
+            wp_die('Erreur lors de la suppression des lignes vides : ' . $this->wpdb->last_error);
+        }
+    }
+
+    /**
+     * Vérifie si un ticket restaurant existe déjà pour une date de mission et un nom de chauffeur donnés.
+     *
+     * @param string $date_mission La date de la mission.
+     * @param string $nom_chauffeur Le nom du chauffeur.
+     * @return bool True si un ticket restaurant existe déjà, False sinon.
+     */
+    public function ticket_restaurant_existe($date_mission, $nom_chauffeur) {
+        $ticket_existe = $this->wpdb->get_var($this->wpdb->prepare("SELECT COUNT(*) FROM $this->table_name WHERE date_mission = %s AND nom_chauffeur = %s AND ticket_restaurant = 1", $date_mission, $nom_chauffeur));
+        return $ticket_existe > 0;
     }
 }

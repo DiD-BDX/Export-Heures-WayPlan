@@ -2,7 +2,7 @@
 /*
 Plugin Name: Export Heures
 Description: Un plugin pour importer des données RH depuis un fichier CSV et exporter les données modifiées dans un fichier Excel, et recalculer les totaux.
-Version: 9.6
+Version: 9.9
 Author: Didier BD
 GitHub Plugin URI: https://github.com/DiD-BDX/Export-Heures-WayPlan
 GitHub Branch: main
