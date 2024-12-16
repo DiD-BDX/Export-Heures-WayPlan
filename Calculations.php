@@ -3,6 +3,7 @@ require_once 'DebugManager.php';
 
 class Calculations {
     private $debug_messages = [];
+    const TIME_FORMAT = '%02d:%02d';
 
     /**
      * Recalcule les totaux et met à jour la base de données.
@@ -70,7 +71,7 @@ class Calculations {
         $total_heures = intdiv($total_minutes, 60);
         $total_minutes = $total_minutes % 60;
 
-        return sprintf('%02d:%02d', $total_heures, $total_minutes);
+        return sprintf(self::TIME_FORMAT, $total_heures, $total_minutes);
     }
 
     /**
@@ -101,7 +102,7 @@ class Calculations {
                 $chauffeur_max = $chauffeur;
             }
         }
-        $total_heures_chauffeur_max = sprintf('%02d:%02d', $heures, $minutes);
+        $total_heures_chauffeur_max = sprintf(self::TIME_FORMAT, $heures, $minutes);
 
         return ['nom_chauffeur' => $chauffeur_max];
     }
@@ -128,7 +129,7 @@ class Calculations {
         $heures = intdiv((int) round($moyenne_minutes), 60);
         $minutes = (int) round($moyenne_minutes) % 60;
 
-        return sprintf('%02d:%02d', $heures, $minutes);
+        return sprintf(self::TIME_FORMAT, $heures, $minutes);
     }
 
     /**
@@ -171,7 +172,7 @@ class Calculations {
         $heures = intdiv($minutes_travaillees, 60);
         $minutes = $minutes_travaillees % 60;
 
-        return sprintf('%02d:%02d', $heures, $minutes);
+        return sprintf(self::TIME_FORMAT, $heures, $minutes);
     }
 
     /**

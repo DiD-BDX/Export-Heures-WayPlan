@@ -138,11 +138,14 @@ class MainController {
                 $heures_travaillees = $this->calculations->calculer_heures_travaillees($heure_debut, $heure_fin, $coupure);
     
                 $ticket_restaurant = isset($_POST['ticket_restaurant'][$id]) ? 1 : 0;
+                $commentaire = sanitize_text_field($_POST['commentaire'][$id]);
+
                 $data = [
                     'heure_debut' => $heure_debut,
                     'coupure' => $coupure,
                     'heure_fin' => $heure_fin,
                     'heures_travaillees' => $heures_travaillees,
+                    'commentaire' => $commentaire,
                     'ticket_restaurant' => $ticket_restaurant
                 ];
                 $where = ['id' => intval($id)];
