@@ -9,7 +9,7 @@ GitHub Branch: main
 */
 
 // Charger automatiquement les dépendances via Composer
-require 'vendor/autoload.php';
+require_once 'vendor/autoload.php';
 
 // Inclure les fichiers nécessaires
 require_once plugin_dir_path(__FILE__) . 'IDatabaseManager.php';
