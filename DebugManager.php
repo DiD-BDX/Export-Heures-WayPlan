@@ -1,10 +1,16 @@
 <?php
 class DebugManager {
+    // Singleton instance
     private static $instance = null;
+    
     private $debug_messages = [];
 
-    private function __construct() {}
+    // Private constructor to prevent direct instantiation
+    private function __construct() {
+        // This constructor is intentionally left empty to prevent direct instantiation.
+    }
 
+    // Method to get the singleton instance
     public static function getInstance() {
         if (self::$instance == null) {
             self::$instance = new DebugManager();
