@@ -33,6 +33,15 @@ class DatabaseManager implements IDatabaseManager {
      * @param array $data Tableau associatif contenant les données à insérer.
      */
     public function inserer_donnees($data) {
+        // Vérifier si un ticket restaurant existe déjà pour la date de mission et le nom du chauffeur
+        $date_mission = $data['date_mission'];
+        $nom_chauffeur = $data['nom_chauffeur'];
+        if (!$this->ticket_restaurant_existe($date_mission, $nom_chauffeur)) {
+            $data['ticket_restaurant'] = 1;
+        } else {
+            $data['ticket_restaurant'] = 0;
+        }
+
         $this->wpdb->insert(
             $this->table_name,
             $data,
@@ -46,6 +55,7 @@ class DatabaseManager implements IDatabaseManager {
                 '%s', // total_heures_travaillees
                 '%s', // chauffeur_max_heures
                 '%s', // moyenne_heures_travaillees
+                '%s', // commentaire
                 '%d'  // ticket_restaurant
             )
         );
@@ -114,6 +124,7 @@ class DatabaseManager implements IDatabaseManager {
             total_heures_travaillees varchar(10) NOT NULL,
             chauffeur_max_heures varchar(255) NOT NULL,
             moyenne_heures_travaillees varchar(10) NOT NULL,
+            commentaire text NOT NULL,
             ticket_restaurant boolean NOT NULL DEFAULT 1,
             total_tickets_restaurant int NOT NULL DEFAULT 0,
             total_tickets_restaurant_par_chauffeur int NOT NULL DEFAULT 0,
@@ -285,5 +296,17 @@ class DatabaseManager implements IDatabaseManager {
         if ($this->wpdb->last_error) {
             wp_die('Erreur lors de la suppression des lignes vides : ' . $this->wpdb->last_error);
         }
+    }
+
+    /**
+     * Vérifie si un ticket restaurant existe déjà pour une date de mission et un nom de chauffeur donnés.
+     *
+     * @param string $date_mission La date de la mission.
+     * @param string $nom_chauffeur Le nom du chauffeur.
+     * @return bool True si un ticket restaurant existe déjà, False sinon.
+     */
+    public function ticket_restaurant_existe($date_mission, $nom_chauffeur) {
+        $ticket_existe = $this->wpdb->get_var($this->wpdb->prepare("SELECT COUNT(*) FROM $this->table_name WHERE date_mission = %s AND nom_chauffeur = %s AND ticket_restaurant = 1", $date_mission, $nom_chauffeur));
+        return $ticket_existe > 0;
     }
 }

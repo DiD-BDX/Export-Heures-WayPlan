@@ -68,6 +68,7 @@ class ImportCsv {
                     $heure_debut = $data[2];
                     $coupure = '00:30'; // Coupure fixe de 30 minutes
                     $heure_fin = $data[3];
+                    $commentaire = $data[13];
     
                     // Vérifier la validité des heures de début et de fin
                     if (empty($heure_debut) || empty($heure_fin) || strtotime($heure_debut) === false || strtotime($heure_fin) === false) {
@@ -93,6 +94,7 @@ class ImportCsv {
                             'coupure' => $coupure,
                             'heure_fin' => $heure_fin,
                             'heures_travaillees' => $heures_travaillees,
+                            'commentaire' => $commentaire
                         ]);
                     } catch (Exception $e) {
                         $debugManager->addMessage("Erreur lors de l'insertion des données pour la ligne $row: " . $e->getMessage());

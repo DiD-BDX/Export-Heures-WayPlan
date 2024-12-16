@@ -165,6 +165,7 @@ class View {
                             <th>Coupure</th>
                             <th>Heure Fin</th>
                             <th>Heures Travaillées</th>
+                            <th>Commentaire</th>
                             <th>Ticket Restaurant</th>
                         </tr>
                     </thead>
@@ -180,6 +181,7 @@ class View {
                                     <td class="<?php echo ($row->est_superieur_a_12_heures) ? 'bold-red' : ''; ?>">
                                         <?php echo esc_html(date('H:i', strtotime($row->heures_travaillees))); ?>
                                     </td>
+                                    <td><input type="text" name="commentaire[<?php echo $row->id; ?>]" value="<?php echo esc_html($row->commentaire); ?>"></td>
                                     <td><input type="checkbox" name="ticket_restaurant[<?php echo $row->id; ?>]" value="1" <?php checked($row->ticket_restaurant, 1); ?>></td>
                                 </tr>
                         <?php endforeach; ?>

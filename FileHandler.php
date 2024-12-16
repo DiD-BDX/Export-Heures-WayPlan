@@ -39,7 +39,7 @@ class FileHandler {
 
         // Ajouter un message de débogage pour confirmer l'enregistrement
         $debugManager = DebugManager::getInstance();
-        $debugManager->addMessage('-------- 1------- Fichier Excel enregistré à : ' . $this->file_path . '<br>');
+        //$debugManager->addMessage('-------- 1------- Fichier Excel enregistré à : ' . $this->file_path . '<br>');
     }
 
     /**

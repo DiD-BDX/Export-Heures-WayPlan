@@ -170,6 +170,7 @@ class ExportExcel {
             'Coupure',
             'Heure de Fin',
             'Heures Travaillées',
+            'Commentaire',
             'Ticket Restaurant'
         ];
         $col = 'A';
@@ -211,19 +212,20 @@ class ExportExcel {
             $sheet->setCellValue('E' . $row, substr($result->coupure, 0, 5)); // hh:mm
             $sheet->setCellValue('F' . $row, substr($result->heure_fin, 0, 5)); // hh:mm
             $sheet->setCellValue('G' . $row, substr($result->heures_travaillees, 0, 5)); // hh:mm
-            $sheet->setCellValue('H' . $row, $result->ticket_restaurant);
+            $sheet->setCellValue('H' . $row, $result->commentaire);
+            $sheet->setCellValue('I' . $row, $result->ticket_restaurant);
     
             // Calculer les totaux
             $total_heures_travaillees += $this->convertir_heures_en_minutes(substr($result->heures_travaillees, 0, 5));
             $total_tickets_restaurant += $result->ticket_restaurant;
     
-            foreach (range('A', 'H') as $col) {
+            foreach (range('A', 'I') as $col) {
                 $sheet->getStyle($col . $row)->applyFromArray($cellStyle);
             }
             $row++;
         }
     
-        foreach (range('A', 'H') as $col) {
+        foreach (range('A', 'I') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
     
@@ -246,8 +248,8 @@ class ExportExcel {
     
         $sheet->setCellValue('F' . $row, 'Total');
         $sheet->setCellValue('G' . $row, $this->convertir_minutes_en_heures($total_heures_travaillees));
-        $sheet->setCellValue('H' . $row, $total_tickets_restaurant);
-        foreach (range('F', 'H') as $col) {
+        $sheet->setCellValue('I' . $row, $total_tickets_restaurant);
+        foreach (range('F', 'I') as $col) {
             $sheet->getStyle($col . $row)->applyFromArray($headerStyle);
         }
     }
